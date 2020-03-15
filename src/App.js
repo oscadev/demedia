@@ -1,24 +1,78 @@
 import React from 'react';
-import logo from './logo.svg';
+
+import { BrowserRouter, Route, Link } from "react-router-dom";
 import './App.css';
+import { Home } from './components/Home';
+import { SupervisorsPage } from './components/SupervisorsPage';
+import { StorePage } from './components/StorePage';
+import { IndividualPage } from './components/IndividualPage';
+import Axios from 'axios';
+import { Header } from './components/Header';
 
 function App() {
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+
+  //Attempt to login with a given string from input field
+  const loginAdmin = (str) =>{
+    if(str=="wrong"){
+      setIsAdmin(false)
+      localStorage.setItem('admin', "false")
+    }else{
+      Axios.get(`/admin/${str}`).then(d=>{
+      console.log(d)
+      if(d.data==true){
+        setIsAdmin(true)
+        localStorage.setItem('admin', "true")
+      }else{
+        alert('wrong password')
+        setIsAdmin(false)
+        localStorage.setItem('admin', "false")
+      }
+      
+    })
+    }
+
+
+    
+  }
+
+  React.useEffect(()=>{
+    //check localstorage for login status
+
+      if(localStorage.getItem('admin')=="false"){
+
+      }else{
+        setIsAdmin(true)
+      }
+      
+
+    
+  },[])
+
+
+
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      
+      {/* //Router for navigation and auth */}
+      <BrowserRouter>
+      
+        <Route path="/" exact>
+          <Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>
+        </Route>
+        <Route path="/supervisor_report" exact>
+          {isAdmin?<SupervisorsPage loginAdmin={loginAdmin} isAdmin={isAdmin}/>:<Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>}
+        </Route>
+        <Route path="/individual/:userID" exact>
+          <IndividualPage loginAdmin={loginAdmin} isAdmin={isAdmin}/>
+        </Route>
+        <Route path="/store_report" exact>
+          {isAdmin?<StorePage loginAdmin={loginAdmin} isAdmin={isAdmin}/>:<Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>}
+        </Route>
+      </BrowserRouter>
+
     </div>
   );
 }
