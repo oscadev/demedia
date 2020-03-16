@@ -154,7 +154,7 @@ export const IndividualPage = (props) => {
 
     const getSurrounding = (hostid) => 
     {
-        if(hostid.length==0){
+        if(hostid.length===0){
             return
         }
         Axios.get(`/surrounding/${hostid}`).then(d=>
@@ -192,7 +192,7 @@ export const IndividualPage = (props) => {
     {
         getData();
         
-    }, []);
+    },[]);
 
     useEffect(()=>
     {

@@ -61,6 +61,12 @@ checkIfFirstTime();
 
 app.use(bodyParser.json({ type: 'application/*+json' }));
 
+//Show in console when any route is hit
+app.use('/', (req, res, next) => {
+    console.log("received request: " + req.originalUrl);
+    next();
+  });
+
 
 app.listen(3001, () => console.log('Listening'));
 
@@ -150,9 +156,11 @@ app.get('/supervisor/:id', (req, res) => {
 app.get('/userstore/:userid', (req, res) => {
   connection.query(`SELECT * FROM directedgemedia.user_store WHERE user_id = '${req.params.userid}'`, (err, results, fields) => {
     if (err) {
-      res.send(null);
+        res.send(null);
+    }else{
+        res.send(results);
     }
-    res.send(results);
+    
   });
 });
 
@@ -220,7 +228,8 @@ app.post('/chosenstore/:userid/:storeid', (req, res) => {
   });
 });
 
-const findAllWithin15 = (hostid) => new Promise((resolve, reject) => {
+const findAllWithin15 = (hostid) => {
+    return new Promise((resolve, reject) => {
   let hostCoord = {};
   connection.query(`SELECT * FROM directedgemedia.sample_storelist WHERE id = ${hostid};`, (err, results, fields) => {
     hostCoord = {
@@ -245,6 +254,8 @@ const findAllWithin15 = (hostid) => new Promise((resolve, reject) => {
     });
   });
 });
+}
+
 
 
 const checkIfAlreadyHasHost = (storeId, hostId, dista) => new Promise((resolve, reject) => {
