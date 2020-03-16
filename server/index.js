@@ -24,7 +24,6 @@ const checkAdmin = (pass) => {
   const hash = crypto.createHash('sha256');
   hash.update(`${pass}sdfkjhsdfhjksdfkjhsdfhjksdfkjhsdfhjksdfkjh`);
   const hex = hash.digest('hex');
-  console.log(hex);
   if (hex === '28dabeb4d1b9a94c19ccbcef6ddf0ac975a74fa78b321cd41370b99bcd90cdc2') {
     return true;
   }
@@ -36,7 +35,6 @@ const checkIfFirstTime = () => {
   let exists = false;
   connection.query('SHOW DATABASES;', (error, results, fields) => {
     results.forEach((e) => {
-      console.log(e);
       const message = 'DIRECT EDGE DB DOESNT EXIST';
       if (e.Database === 'directedgemedia') {
         exists = true;
@@ -47,8 +45,6 @@ const checkIfFirstTime = () => {
     } else {
       connection.query('CREATE SCHEMA directedgemedia ;', (err, res, fie) => {
         if (res) {
-          console.log('Created DB');
-
           makeTables();
         }
       });
@@ -101,7 +97,6 @@ app.get('/admin/:password', (req, res) => {
 app.post('/removehost/:userId/:region', (req, res) => {
   checkIfShouldAddToHostOnRemove(req.params.userId)
     .then((d) => {
-      console.log('trying to remove');
 
       res.send(d);
     });
@@ -109,21 +104,18 @@ app.post('/removehost/:userId/:region', (req, res) => {
 
 app.get('/getallhosts', (req, res) => {
   connection.query('SELECT DISTINCT store_id FROM directedgemedia.user_store;', (err, results, fields) => {
-    console.log('DISTICNT ARE: ', results);
     res.send(results);
   });
 });
 
 app.get('/gethosts', (req, res) => {
   connection.query('SELECT * FROM directedgemedia.hosts;', (err, results, fields) => {
-    console.log('DISTICNT ARE: ', results);
     res.send(results);
   });
 });
 
 app.get('/getalluserswithhost', (req, res) => {
   connection.query('SELECT * FROM directedgemedia.user_store;', (err, results, fields) => {
-    console.log('ALL USERS WITH HOSTS ARE: ', results);
     res.send(results);
   });
 });
@@ -151,7 +143,6 @@ app.get('/stores/:region', (req, res) => {
 
 app.get('/supervisor/:id', (req, res) => {
   connection.query(`SELECT * FROM directedgemedia.sample_supervisor WHERE id = ${req.params.id};`, (err, results, fields) => {
-    console.log('GET INDIVIDUAL: ');
     res.send(results);
   });
 });
@@ -167,7 +158,6 @@ app.get('/userstore/:userid', (req, res) => {
 
 // GET SURROUNDING TO HOSTID
 app.get('/surrounding/:hostid', (req, res) => {
-  console.log('hostid is : ', req.params.hostid);
   if (req.params.hostid === null) {
     res.send('no host id passed');
   } else {
@@ -203,7 +193,6 @@ app.post('/chosenstore/:userid/:storeid', (req, res) => {
     `, (err, results, fields) => {
     if (stoid && !err) {
       findAllWithin15(stoid).then((d) => {
-        console.log('PROMISE WORKED!! ', d);
         connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
 `);
 
@@ -218,14 +207,12 @@ app.post('/chosenstore/:userid/:storeid', (req, res) => {
         (err2, results2, fields2) => {
           if (stoid) {
             findAllWithin15(stoid).then((d) => {
-              console.log('PROMISE WORKED!! ', d);
               connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
     `);
 
               res.send('completed');
             });
           }
-          console.log('RESULTS ARE: ', results2);
         });
     } else {
 
@@ -236,14 +223,11 @@ app.post('/chosenstore/:userid/:storeid', (req, res) => {
 const findAllWithin15 = (hostid) => new Promise((resolve, reject) => {
   let hostCoord = {};
   connection.query(`SELECT * FROM directedgemedia.sample_storelist WHERE id = ${hostid};`, (err, results, fields) => {
-    console.log('HERE IS THE STORE : ', results[0].region);
-    console.log('HERE IS THE STORE COORD : ', results[0].latitude);
     hostCoord = {
       lat: results[0].latitude,
       lon: results[0].longitude,
     };
     connection.query(`SELECT * FROM directedgemedia.sample_storelist WHERE region = '${results[0].region}';`, (e, res, f) => {
-      // console.log("HERE IS THE STOREs REGION : ", res)
       const list = [];
       res.forEach((e, i) => {
         const dist = geodist(hostCoord, { lat: e.latitude, lon: e.longitude });
@@ -251,10 +235,8 @@ const findAllWithin15 = (hostid) => new Promise((resolve, reject) => {
           list.push({ id: e.id, distance: dist });
         }
       });
-      console.log(list);
       list.forEach((e, i) => {
         checkIfAlreadyHasHost(e.id, hostid, e.distance).then((d) => {
-          console.log(d);
           if (i === list.length - 1) {
             resolve('done');
           }
@@ -264,16 +246,11 @@ const findAllWithin15 = (hostid) => new Promise((resolve, reject) => {
   });
 });
 
-//     connection.query(`SELECT * from `)
-//     var dist = geodist({lat: 41.85, lon: -87.65}, {lat: 33.7489, lon: -84.3881})
-// console.log(dist)
-
 
 const checkIfAlreadyHasHost = (storeId, hostId, dista) => new Promise((resolve, reject) => {
   connection.query(`SELECT * FROM directedgemedia.hosts 
     WHERE store_id = ${storeId} 
     AND store_type = 'surrounding'`, (err, results, fields) => {
-    console.log('RESULTS SHOULD BE UNDEFINED: ', results);
     if (results.length === 0) {
       // ADD SURROUNDING ELEMENT TO HOSTS BECAUSE IT DOESNT ALREADY HAVE A HOST ASSOCIATED
       connection.query(`INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) VALUES ('${storeId}', 'surrounding', '${hostId}', '${dista}');
@@ -281,7 +258,6 @@ const checkIfAlreadyHasHost = (storeId, hostId, dista) => new Promise((resolve, 
         resolve('successfully added');
       });
     } else {
-      console.log('THIS STOREID IS ALREADYT ATTACHED TO A HOST: ', results[0].distance);
       // IT ALREADY HAS A HOST, SO SEE WHICH HOST IS CLOSER
       const currentHost = results[0].closest_host_id;
       const newHost = hostId;
@@ -301,7 +277,6 @@ const checkIfAlreadyHasHost = (storeId, hostId, dista) => new Promise((resolve, 
 });
 
 const checkIfShouldAddToHostOnRemove = (userId, region) => {
-  console.log('WTF IS userId: ', userId);
   return new Promise((resolve, reject) => {
     // get all hosts
     const closestDistance = null;
@@ -311,7 +286,6 @@ const checkIfShouldAddToHostOnRemove = (userId, region) => {
     const count = [];
     // GET HOSTID
     connection.query(`SELECT * FROM directedgemedia.user_store WHERE user_id = ${userId}`, (e, r, f) => {
-      console.log('WHAAAAAAAAAAAAA', r);
       // Get host store id
       r.forEach((e) => {
         if (e.user_id == userId) {
@@ -324,7 +298,6 @@ const checkIfShouldAddToHostOnRemove = (userId, region) => {
           // ONLY REMOVE FROM USER STORE IF ANOTHER USER HAS SAME HOST
           connection.query(`DELETE FROM directedgemedia.user_store WHERE (user_id = '${userId}');
                     `, () => {
-            console.log('REMOVED 1. Length is: ', re.length);
 
             resolve('Removed host from user store only');
           });
@@ -332,10 +305,8 @@ const checkIfShouldAddToHostOnRemove = (userId, region) => {
           // NO OTHER USER IS USING THAT HOST, SO DELETE HOST FROM HOSTS TABLE AND USER STORE TABLE
           connection.query(`DELETE FROM directedgemedia.user_store WHERE (user_id = '${userId}');
                     `, () => {
-            console.log('REMOVED LAST INSTANCE IN USER STORE, HOSTID IS: ', hostId);
             connection.query(`DELETE FROM directedgemedia.hosts WHERE (closest_host_id = '${hostId}');
                         `, () => {
-              console.log('TRIED TO REMOVE GRRRR');
               resolve('Removed host from hosts');
             });
           });

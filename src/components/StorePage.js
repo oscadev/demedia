@@ -12,17 +12,14 @@ export const StorePage = (props) => {
 
     const getData = () => {
         Axios.get('/supervisors').then(res=>{
-            console.log('obtained data: ',res)
             setData(res.data)
         }).catch(err=>console.log(err))
     }
 
     const getStoreData = () =>{
         
-        console.log("REG IS: ", )
          Axios.get(`/stores`)
         .then(res=>{
-            console.log('obtained all store data: ',res)
             if(res.data.length)
             setStores(res.data)
         })
@@ -34,7 +31,6 @@ export const StorePage = (props) => {
 
          Axios.get(`/gethosts`)
         .then(res=>{
-            console.log('obtained all hosts table data: ',res.data.length)
             
             
             stores.forEach(e=>{
@@ -88,7 +84,6 @@ export const StorePage = (props) => {
                 tH++
                 arr.forEach((f,i)=>{
                     if(d[f].closest_host_id===d[e].id){
-                        console.log("SHOULD BE DIFFERENT: ", d[f].closest_host_id, d[e].id)
                         
                         arrayOfSurr.push(`${d[f].id}, `)
                     }

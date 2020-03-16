@@ -154,6 +154,9 @@ export const IndividualPage = (props) => {
 
     const getSurrounding = (hostid) => 
     {
+        if(hostid.length==0){
+            return
+        }
         Axios.get(`/surrounding/${hostid}`).then(d=>
             {
                 makeSurrounding(d.data);

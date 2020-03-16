@@ -21,8 +21,8 @@ export const SupervisorsPage = (props) => {
 
     //Count supervisors that have chosen hosts and where host isnt null
     const getTotalHosts = () => {
-        Axios.get('/getallhosts').then((d) => {
-            console.log('GET ALL HOSTS', d);
+        Axios.get('/getallhosts').then((d) => 
+        {
             let notNull = 0;
             d.data.forEach((e) => {
                 if (e.store_id) {
@@ -33,14 +33,19 @@ export const SupervisorsPage = (props) => {
         });
     };
 
-    const getParticipation = (arr) => {
-        Axios.get('/getalluserswithhost').then((d) => {
-            console.log('GET ALL USERS WITH HOSTS', d.data.length);
+    const getParticipation = (arr) => 
+    {
+        Axios.get('/getalluserswithhost')
+        .then((d) => 
+        {
+
             // Find not null in case a user is in the user_store db, but has a store_id of null
             let notNull = 0;
-            d.data.forEach((e) => {
-                if (e.store_id) {
-                notNull++;
+            d.data.forEach((e) => 
+            {
+                if (e.store_id) 
+                {
+                    notNull++;
                 }
             });
             setTotalUsersWithHost(d.data.length);
