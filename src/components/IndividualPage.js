@@ -51,6 +51,8 @@ export const IndividualPage = (props) => {
                 if(res.data.length)
                 {
                     setChosen(res.data[0].store_id);
+                    
+                    
                 }
                 else
                 {
@@ -105,7 +107,7 @@ export const IndividualPage = (props) => {
     const chooseStore = (storeID, regi) => 
     {
         //On either an empty string, or when explicitly sent "remove", remove the chosen store
-        if (storeID=='' || storeID=="remove")
+        if (storeID==='' || storeID==="remove")
         {
             storeID="remove";
             Axios.post(`/removehost/${userID}/${regi}`)
@@ -186,6 +188,7 @@ export const IndividualPage = (props) => {
     useEffect(() => 
     {
         getData();
+        
     }, []);
 
     useEffect(()=>
@@ -196,14 +199,26 @@ export const IndividualPage = (props) => {
             setRegion(userData[0].region);
             getStoreData(userData[0].region);
             getCurrentChosen();
+            
         }
      
     },[userData]);
 
     useEffect(()=>{
-        if(storeData && chosen)
-        makeItems(storeData)
+        if(storeData && chosen){
+            makeItems(storeData)
+
+        
+        }
+        
     },[storeData, chosen]);
+
+    useEffect(() => {
+        if(dic)
+        getSurrounding(chosen)
+    }, [dic])
+
+
 
     return (
         <div className="flex">

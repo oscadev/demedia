@@ -1,13 +1,13 @@
 import React from 'react';
 
-import { BrowserRouter, Route, Link } from "react-router-dom";
+import { BrowserRouter, Route } from "react-router-dom";
 import './App.css';
 import { Home } from './components/Home';
 import { SupervisorsPage } from './components/SupervisorsPage';
 import { StorePage } from './components/StorePage';
 import { IndividualPage } from './components/IndividualPage';
 import Axios from 'axios';
-import { Header } from './components/Header';
+
 
 function App() {
   const [isAdmin, setIsAdmin] = React.useState(false);
@@ -15,16 +15,32 @@ function App() {
 
   //Attempt to login with a given string from input field
   const loginAdmin = (str) =>{
-    if(str=="wrong"){
+    if(str=='')
+    {
+      alert('wrong password')
+        setIsAdmin(false)
+        localStorage.setItem('admin', "false")
+        return
+    }
+    else if(str=="wrong")
+    {
       setIsAdmin(false)
       localStorage.setItem('admin', "false")
-    }else{
-      Axios.get(`/admin/${str}`).then(d=>{
+      alert("you logged out")
+    }
+    else
+    {
+      Axios.get(`/admin/${str}`)
+      .then(d=>
+        {
       console.log(d)
-      if(d.data==true){
+      if(d.data==true)
+      {
         setIsAdmin(true)
         localStorage.setItem('admin', "true")
-      }else{
+      }
+      else
+      {
         alert('wrong password')
         setIsAdmin(false)
         localStorage.setItem('admin', "false")
