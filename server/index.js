@@ -197,7 +197,7 @@ app.get('/surrounding/:hostid', (req, res) => {
   }
 });
 
-app.post('/removechosenstore/:storeid', (req, res) => {
+app.delete('/removechosenstore/:storeid', (req, res) => {
   connection.query(`DELETE FROM directedgemedia.user_store WHERE (user_id = '${req.params.storeid}');
     `, (e, r, f) => {
     res.send(r);
