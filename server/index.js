@@ -76,16 +76,28 @@ const makeTables = () => {
     if (err) {
       throw err;
     } else {
-      connection.query(q.tableSupervisor, (err, res) => {
+      connection.query(q.tableSupervisor, (err2, res) => {
+          if(err2){
+              console.log(err2)
+          }
         connection.query(q.supervisor);
       });
-      connection.query(q.tableStorelist, (err, res) => {
+      connection.query(q.tableStorelist, (err2, res) => {
+        if(err2){
+            console.log(err2)
+        }
         connection.query(q.storelist);
       });
-      connection.query(q.tableSupervisorStore, (err, res) => {
+      connection.query(q.tableSupervisorStore, (err2, res) => {
+        if(err2){
+            console.log(err2)
+        }
 
       });
-      connection.query(q.tableHosts, (err, res) => {
+      connection.query(q.tableHosts, (err2, res) => {
+        if(err2){
+            console.log(err2)
+        }
 
       });
     }
@@ -100,12 +112,22 @@ app.get('/admin/:password', (req, res) => {
   }
 });
 
-app.post('/removehost/:userId/:region', (req, res) => {
-  checkIfShouldAddToHostOnRemove(req.params.userId)
-    .then((d) => {
+app.post('/removehost/:userid/:region', async (req, res) => {
+    //Get host of this user
+    let hostToRemove = await qu(`SELECT * FROM directedgemedia.user_store WHERE (user_id = '${req.params.userid}');`)
+    await qu(`DELETE FROM directedgemedia.user_store WHERE (user_id = '${req.params.userid}');`)
+    console.log('THIS SHOULD NOT BE UNDEFINED: ', hostToRemove)
+    await qu(`DELETE FROM directedgemedia.hosts WHERE (closest_host_id = '${hostToRemove[0].store_id}');`)
 
-      res.send(d);
-    });
+    res.send('done')
+
+
+
+//   checkIfShouldAddToHostOnRemove(req.params.userid)
+//     .then((d) => {
+//         console.log(d)
+//       res.send(d);
+//     });
 });
 
 app.get('/getallhosts', (req, res) => {
@@ -182,75 +204,233 @@ app.post('/removechosenstore/:storeid', (req, res) => {
   });
 });
 
-app.post('/chosenstore/:userid/:storeid', (req, res) => {
-  let stoid = req.params.storeid;
-  if (req.params.storeid === 'null') {
-    stoid = null;
-    connection.query(`UPDATE directedgemedia.user_store SET store_id = ${stoid} WHERE (user_id = '${req.params.userid}');`,
-      (err2, results2, fields2) => {
-        res.send('SET TO NULL');
-      });
-    return;
-  }
+app.post('/choosehost/:userid/:hostid', async (req, res) => {
+    let {userid, hostid} = req.params;
+    let alreadyHadHost = false
 
-  // SETTING TO NULL
+//Get current host if any. Also exit if clicking existing host
+
+    let oldHost = await qu(`SELECT * FROM directedgemedia.user_store WHERE user_id = ${userid};`)
+    
+    if(oldHost[0]){
+        alreadyHadHost = true
+        oldHost = oldHost[0].store_id
+        console.log('old host:', oldHost)
+        if(oldHost==hostid){
+        res.send('done')
+        return
+    }
+    }
+    
+    
+
+    //SEE IF ANOTHER SUPERVISOR HAS THIS OLDHOST AS HOST
+    peopleWithOldHost = null
+    
+    await qu(`SELECT * FROM directedgemedia.user_store WHERE store_id = ${oldHost};`).then(d=>{
+        console.log("WTF AGAIN: ", d)
+        peopleWithOldHost = d
+    }).catch(error=>{
+        peopleWithOldHost = 0
+        console.log('nobody else had old host')
+    })
 
 
-  // ADD TO USER_STORE
-  connection.query(`INSERT INTO directedgemedia.user_store (user_id, store_id) VALUES (${req.params.userid}, '${stoid}');
-    `, (err, results, fields) => {
-    if (stoid && !err) {
-      findAllWithin15(stoid).then((d) => {
-        connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
-`);
 
-        res.send('completed');
-      });
+    console.log("This should be 1 when i choose a secondf", peopleWithOldHost)
+
+    //If another supervisor has the old store as host, do not remove from hosts
+    
+    if(peopleWithOldHost){
+        console.log("IF peoplewithhost length is 1, it means only this user has it, so delete form hsots: ", peopleWithOldHost.length)
+        if(peopleWithOldHost.length==1){
+            console.log("THIS SHOULD BE DELETING RIGHT HERE: ", peopleWithOldHost.length)
+            //Delete oldhost from hosts
+        await qu(`DELETE FROM directedgemedia.hosts WHERE closest_host_id = ${oldHost};`)
+        }
+        
     }
 
+    //ADD ENTRY TO USER_STORE TABLE
 
-    // If duplicate and need to update
-    if (err) {
-      connection.query(`UPDATE directedgemedia.user_store SET store_id = ${stoid} WHERE (user_id = '${req.params.userid}');`,
-        (err2, results2, fields2) => {
-          if (stoid) {
-            findAllWithin15(stoid).then((d) => {
-              connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
-    `);
+    let resp = await qu(`INSERT INTO directedgemedia.user_store (user_id, store_id) VALUES 
+    ('${userid}', '${hostid}') ON DUPLICATE KEY UPDATE store_id = ${hostid};`)
 
-              res.send('completed');
-            });
-          }
-        });
-    } else {
+    //Check if new host is already on hosts
 
+    resp = await qu(`SELECT * FROM directedgemedia.hosts WHERE closest_host_id = ${hostid};`)
+
+    if(resp.length>0){
+        //New host is already in hosts, done
+        res.send('success')
     }
-  });
+    else{
+        //Get within 15 miles
+        await findAllWithin15(hostid)
+        res.send('success')
+    }
+    
+
+    
+    
+
+
+
+
+// ===================================================>
+//     connection.query(`SELECT * FROM directedgemedia.user_store WHERE store_id = ${req.params.storeid};`, (e,r,f)=>{
+//         if(r.length>0){
+//             //DELETE STORE FROM HOSTS
+//             connection.query(`DELETE FROM directedgemedia.hosts WHERE closest_host_id = ${req.params.storeid};`, (e1, r1, f1) => {
+//                 console.log("REMOVED THE THING")
+//                 connection.query(`INSERT INTO directedgemedia.user_store (user_id, store_id) VALUES (${req.params.userid}, '${stoid}');
+//                 `, (err, results, fields) => {
+//                 if (stoid && !err) {
+//                   findAllWithin15(stoid).then((d) => {
+//                     connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
+//             `);
+            
+//                     res.send('completed');
+//                   });
+//                 }
+            
+            
+//                 // If duplicate and need to update
+//                 if (err) {
+//                   connection.query(`UPDATE directedgemedia.user_store SET store_id = ${stoid} WHERE (user_id = '${req.params.userid}');`,
+//                     (err2, results2, fields2) => {
+//                       if (stoid) {
+//                         findAllWithin15(stoid).then((d) => {
+//                           connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
+//                 `);
+            
+//                           res.send('completed');
+//                         });
+//                       }
+//                     });
+//                 } 
+//               });
+                
+//             })
+//         }else{
+//             connection.query(`INSERT INTO directedgemedia.user_store (user_id, store_id) VALUES (${req.params.userid}, '${stoid}');
+//     `, (err, results, fields) => {
+//     if (stoid && !err) {
+//       findAllWithin15(stoid).then((d) => {
+//         connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
+// `);
+
+//         res.send('completed');
+//       });
+//     }
+
+
+//     // If duplicate and need to update
+//     if (err) {
+//       connection.query(`UPDATE directedgemedia.user_store SET store_id = ${stoid} WHERE (user_id = '${req.params.userid}');`,
+//         (err2, results2, fields2) => {
+//           if (stoid) {
+//             findAllWithin15(stoid).then((d) => {
+//               connection.query(`UPDATE directedgemedia.hosts SET store_type = 'host' WHERE (store_id = '${stoid}');
+//     `);
+
+//               res.send('completed');
+//             });
+//           }
+//         });
+//     } 
+//   });
+//         }
+//     })
+//     =================================================================>
+
+        
+
+
+      
+
+  
 });
 
 const findAllWithin15 = (hostid) => {
+    
     return new Promise((resolve, reject) => {
   let hostCoord = {};
+
+  //Get host store coordinates
   connection.query(`SELECT * FROM directedgemedia.sample_storelist WHERE id = ${hostid};`, (err, results, fields) => {
     hostCoord = {
       lat: results[0].latitude,
       lon: results[0].longitude,
     };
+
+    //Get all stores in same region as host and reduce to withing 15 miles
     connection.query(`SELECT * FROM directedgemedia.sample_storelist WHERE region = '${results[0].region}';`, (e, res, f) => {
-      const list = [];
+      const nearbyStores = [];
       res.forEach((e, i) => {
         const dist = geodist(hostCoord, { lat: e.latitude, lon: e.longitude });
         if (dist < 15) {
-          list.push({ id: e.id, distance: dist });
+          nearbyStores.push({ id: e.id, distance: dist });
         }
       });
-      list.forEach((e, i) => {
-        checkIfAlreadyHasHost(e.id, hostid, e.distance).then((d) => {
-          if (i === list.length - 1) {
-            resolve('done');
+
+      console.log("What in tarnation: ",nearbyStores)
+
+
+      nearbyStores.forEach((e, i) => {
+        
+          //Check this "surrounding store" is the host itself. Make host if so
+          if(e.id == hostid){
+            console.log('check zero:', e, hostid)
+            qu(`INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) VALUES ('${e.id}', 'host', '${hostid}', '${e.distance}') 
+                    ON DUPLICATE KEY UPDATE store_type = 'host', closest_host_id = '${hostid}';`)
+          }else{
+              console.log('check one')
+              //Check if this nearby already belongs to another host
+              qu(`SELECT * FROM directedgemedia.hosts WHERE store_id = ${e.id} AND store_type = 'surrounding'`).then(d=>{
+                console.log('check two')
+
+                  if(d.length===0){
+                      //It doesnt already belong to another host, so just add it as surrounding to this host
+                    qu(`INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) VALUES ('${e.id}', 'surrounding', '${hostid}', '${e.distance}') 
+                    ON DUPLICATE KEY UPDATE store_id = ${e.id};`)
+
+                  }else{
+                      //Since it does belong to another host, see which host is closer
+                      if(e.distance<d[0].distance && false){
+                        //New host is closer
+                        qu(`INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) VALUES ('${e.id}', 'surrounding', '${hostid}', '${e.distance}') 
+                        ON DUPLICATE KEY UPDATE store_id = ${e.id};`)
+                    }else{
+                        //Old host is closer, so dont do anything
+                    }
+
+                  }
+              })
+
           }
-        });
+
+                      
+
+
+
+          
+          
+
+          if(i==nearbyStores.length - 1){
+            resolve('success')
+          }
+          
+
+
+        // checkIfAlreadyHasHost(e.id, hostid, e.distance).then((d) => {
+        //   if (i === list.length - 1) {
+        //     resolve('done');
+        //   }
+        // });
       });
+      //Change host store type from "surrounding" to "host" 
+
     });
   });
 });
@@ -287,7 +467,7 @@ const checkIfAlreadyHasHost = (storeId, hostId, dista) => new Promise((resolve, 
   });
 });
 
-const checkIfShouldAddToHostOnRemove = (userId, region) => {
+const checkIfShouldAddToHostOnRemove = (userId) => {
   return new Promise((resolve, reject) => {
     // get all hosts
     const closestDistance = null;
@@ -332,3 +512,30 @@ const checkIfShouldAddToHostOnRemove = (userId, region) => {
     // });
   });
 };
+
+
+const removeAllOccurenceFromTable = (tablename, para, id) => {
+    return new Promise ((resolve, reject) => {
+        q(`DELETE FROM directedgemedia.${tablename} where ${para} = ${id};`)
+        .then(d=>{
+            resolve(d)
+        })
+        .catch(error=>
+            {
+                reject(error)
+            })
+
+    })
+}
+
+const qu = (sql) => {
+    return new Promise ((resolve, reject)=>{
+        connection.query(sql, (error , results, field)=>{
+            if(error){
+                reject(error)
+            }else{
+                resolve(results)
+            }
+        })
+    })
+}

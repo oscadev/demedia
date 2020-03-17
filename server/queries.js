@@ -353,19 +353,18 @@ const tableStorelist = `CREATE TABLE sample_storelist (
   );`
 
 const tableSupervisorStore = `CREATE TABLE directedgemedia.user_store (
-    user_id INT NOT NULL,
-    store_id INT DEFAULT NULL,
-    PRIMARY KEY (user_id),
-    UNIQUE INDEX user_id_UNIQUE (user_id ASC) VISIBLE);
+    user_id INT NOT NULL PRIMARY KEY UNIQUE KEY,
+    store_id INT DEFAULT NULL)
+
+    ;
   `;
 
 const tableHosts = `CREATE TABLE directedgemedia.hosts (
-    store_id INT NOT NULL,
+    store_id INT NOT NULL PRIMARY KEY UNIQUE KEY,
     store_type VARCHAR(12) NULL DEFAULT 'General',
     closest_host_id INT NULL DEFAULT NULL,
-    distance INT NULL DEFAULT NULL,
-    PRIMARY KEY (store_id),
-    UNIQUE INDEX host_store_id_UNIQUE (store_id ASC) VISIBLE);
+    distance INT NULL DEFAULT NULL)
+;
   `
 
 

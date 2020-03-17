@@ -125,7 +125,7 @@ export const IndividualPage = (props) => {
             if(dic[storeID])
             {
                 storeID = dic[storeID];
-                Axios.post(`/chosenstore/${userID}/${storeID}`)
+                Axios.post(`/choosehost/${userID}/${storeID}`)
                 .then(res=>
                     {
                         getData()
@@ -143,7 +143,7 @@ export const IndividualPage = (props) => {
         else if(storeID!=="remove")
         {
 
-            Axios.post(`/chosenstore/${userID}/${storeID}`)
+            Axios.post(`/choosehost/${userID}/${storeID}`)
             .then(res=>
                 {
                     getCurrentChosen();
@@ -237,7 +237,7 @@ export const IndividualPage = (props) => {
                     You may click an option from the list below, or type it in the input field
                 </h4>
             <h4 className="text" style={{color:chosenName?"green":"red"}}>
-                Current host selected: {chosenName?chosenName:"none"} {chosenName?<button onClick={()=>chooseStore('remove', region)}>Remove</button>:null}
+                Current host selected: {chosenName?chosenName:"none"} {chosenName?<button onClick={()=>chooseStore('remove', region)}>Remove</button>:<button onClick={()=>chooseStore('remove', region)}>Remove</button>}
             </h4>
             <form onSubmit={(e)=>{e.preventDefault(); chooseStore(inputVal);}} className="flex-row">
                 <input list="names" name="names" value={inputVal} onChange={(e)=>setInputVal(e.currentTarget.value)} className="textinput" autoComplete="off"/>
