@@ -24,20 +24,23 @@ export const IndividualPage = (props) => {
     //Get data for specific supervisor
     const getData = () => 
     {
-        Axios.get(`/supervisor/${userID}`)
+        Axios.get(`/supervisors/${userID}`)
         .then(res=>{
-            setUserData(res.data)
+            
+            setUserData(res.data.results)
         })
         .catch(err=>console.log(err))
     }
 
-    const getStoreData = (reg) =>
+    const getStoresInRegion = (reg) =>
     {
-        Axios.get(`/stores/${reg}`)
+        console.log("REGION IS: ", reg)
+        Axios.get(`/stores/byregion`, {region:reg})
         .then(res=>
             {
-                if(res.data.length)
-                setStoreData(res.data)
+                console.log("RESPONSE IS: ", res.data.results)
+                if(res.data.results.length)
+                setStoreData(res.data.results)
             })
         .catch(err=>console.log(err))
     }
@@ -45,18 +48,19 @@ export const IndividualPage = (props) => {
     //Fetch host that is currently selected by the supervisor, if there is one, and update state.
     const getCurrentChosen = () => 
     {
-        Axios.get( `/userstore/${userID}`)
+        Axios.get( `/supervisorstore/bysupervisor`,{id:userID})
         .then(res=>
             {
-                if(res.data.length)
+                console.log("RES IS: ", res.data.data)
+                if(res.data.data.results.length)
                 {
-                    setChosen(res.data[0].store_id);
+                    setChosen(res.data.results[0].store_id);
                     
                     
                 }
                 else
                 {
-                    setChosen(res.data);
+                    setChosen(res.data.results);
                 }
             });
     };
@@ -159,7 +163,7 @@ export const IndividualPage = (props) => {
         }
         Axios.get(`/surrounding/${hostid}`).then(d=>
             {
-                makeSurrounding(d.data);
+                makeSurrounding(d.data.results);
             })
             .catch(err=>console.log(err));
     }
@@ -200,7 +204,7 @@ export const IndividualPage = (props) => {
         {
             setName(userData[0].firstname + " " + userData[0].lastname );
             setRegion(userData[0].region);
-            getStoreData(userData[0].region);
+            getStoresInRegion(userData[0].region);
             getCurrentChosen();
             
         }

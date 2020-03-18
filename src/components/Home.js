@@ -23,7 +23,7 @@ export const Home = (props) => {
             <Link to='/individual/113554'>
                 Supervisor Page for Alaina Ramsay
             </Link>
-            <form onSubmit={(e)=>{e.preventDefault(); props.loginAdmin(value)}}>
+            <form onSubmit={(e)=>{e.preventDefault(); props.login(value)}}>
                 <input type="text" value={value} onChange={(e)=>setValue(e.currentTarget.value)} className="textinput"/>
                 <input type="submit" value="Login" className="btn"/>
                 <h3>

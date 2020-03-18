@@ -1,5 +1,5 @@
 // Convert queries into node mySQL form (removed tildas around individual words)
-const storelist = `INSERT INTO sample_storelist (id, name, region, ship_address, ship_city, ship_state, ship_zip, latitude, longitude)
+const storelist = `INSERT INTO stores (id, name, region, ship_address, ship_city, ship_state, ship_zip, latitude, longitude)
 VALUES
 
 (100,"GLENDALE GALL. PX I","WLA","3214 Glendale Galleria","Glendale","CA","91210",34.145179,-118.259410),
@@ -299,7 +299,7 @@ VALUES
 (2951,"Garnett & Ingraham PX ","PS","1656 Garnet Ave ","San Diego","CA","92109 ",32.800800,-117.239810),
 (2952,"Western & Venice PX ","WLA","1713 S Western Ave ","Los Angeles","CA","90019 ",34.042484,-118.310058);`
 
-const supervisor = `INSERT INTO sample_supervisor (id, firstname, lastname, email, region)
+const supervisor = `INSERT INTO supervisors (id, firstname, lastname, email, region)
 VALUES
 	(151411,'Rodrick','Parlier','rparlier@example.com','GLA'),
 	(119803,'Angelia','Honda','ahonda@example.com','WLA'),
@@ -332,7 +332,7 @@ VALUES
 	(182058,'Stefanie','Zoller','szoller@example.com','IE'),
 	(173396,'Allie','Jeffery','ajeffery@example.com','IE');`
 
-const tableSupervisor = `CREATE TABLE sample_supervisor (
+const tableSupervisor = `CREATE TABLE supervisors (
     id int(11) DEFAULT NULL,
     firstname varchar(64) DEFAULT NULL,
     lastname varchar(64) DEFAULT NULL,
@@ -340,7 +340,7 @@ const tableSupervisor = `CREATE TABLE sample_supervisor (
     region varchar(8) DEFAULT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
 
-const tableStorelist = `CREATE TABLE sample_storelist (
+const tableStorelist = `CREATE TABLE stores (
     id int(11) DEFAULT NULL,
     name varchar(255) DEFAULT NULL,
     region varchar(8) DEFAULT NULL,
@@ -352,20 +352,29 @@ const tableStorelist = `CREATE TABLE sample_storelist (
     longitude decimal(9,6) DEFAULT NULL
   );`
 
-const tableSupervisorStore = `CREATE TABLE directedgemedia.user_store (
+  const tableSupervisorStore = `CREATE TABLE directedgemedia.user_store (
     user_id INT NOT NULL PRIMARY KEY UNIQUE KEY,
     store_id INT DEFAULT NULL)
+;`
 
-    ;
-  `;
+
 
 const tableHosts = `CREATE TABLE directedgemedia.hosts (
     store_id INT NOT NULL PRIMARY KEY UNIQUE KEY,
     store_type VARCHAR(12) NULL DEFAULT 'General',
     closest_host_id INT NULL DEFAULT NULL,
     distance INT NULL DEFAULT NULL)
-;
-  `
+;`
+
+const tableAdmin = `CREATE TABLE directedgemedia.admins (
+    admin_id INT NOT NULL PRIMARY KEY UNIQUE KEY,
+    password varchar(255) NULL DEFAULT NULL)
+;`
+
+const adminList = `INSERT INTO admins (admin_id, password)
+VALUES (10000, '$2b$10$WZaPSWQQtMPq2uyUc4U5xeBjL1ZDaO/jpedrEiFAPhWFwDU7OS6Re');`
+
+
 
 
 module.exports = {
@@ -374,5 +383,7 @@ module.exports = {
     tableSupervisor:tableSupervisor,
     tableStorelist: tableStorelist,
     tableSupervisorStore: tableSupervisorStore,
-    tableHosts: tableHosts
+    tableHosts: tableHosts,
+    tableAdmin: tableAdmin,
+    adminList: adminList
 }

@@ -12,19 +12,27 @@ export const SupervisorsPage = (props) => {
     const [participation, setParticipation] = useState(0);
 
     // Get supervisors DB data
-    const getData = () => {
-        Axios.get('/supervisors').then((res) => {
-        setData(res.data);
+    const getAllSupervisors = () => {
+        let tkn = localStorage.getItem('token')
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + tkn
+        }
+        
+        console.log("TOKEN IS: ", tkn )
+        Axios.get('/supervisors', {headers:headers}).then((res) => {
+        setData(res.data.results);
         })
         .catch((err) => console.log(err));
     };
 
     //Count supervisors that have chosen hosts and where host isnt null
     const getTotalHosts = () => {
-        Axios.get('/getallhosts').then((d) => 
+        Axios.get('/hosts').then((d) => 
         {
             let notNull = 0;
-            d.data.forEach((e) => {
+            console.log(d.data.results)
+            d.data.results.forEach((e) => {
                 if (e.store_id) {
                 notNull++;
                 }
@@ -35,13 +43,13 @@ export const SupervisorsPage = (props) => {
 
     const getParticipation = (arr) => 
     {
-        Axios.get('/getalluserswithhost')
+        Axios.get('/supervisorstore')
         .then((d) => 
         {
 
             // Find not null in case a user is in the user_store db, but has a store_id of null
             let notNull = 0;
-            d.data.forEach((e) => 
+            d.data.results.forEach((e) => 
             {
                 if (e.store_id) 
                 {
@@ -78,7 +86,7 @@ export const SupervisorsPage = (props) => {
 
     // Get initial data when component mounts
     useEffect(() => {
-        getData();
+        getAllSupervisors();
     },[]);
 
   // Run these functions that require data to be fetched first

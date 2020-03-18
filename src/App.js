@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { BrowserRouter, Route, Switch, Link } from "react-router-dom";
+import { BrowserRouter, Route, Switch, Link, Redirect } from "react-router-dom";
 import './App.css';
 import { Home } from './components/Home';
 import { SupervisorsPage } from './components/SupervisorsPage';
@@ -11,60 +11,38 @@ import Axios from 'axios';
 
 function App() {
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [auth, setAuth] = React.useState(false);
+  const [token, setToken] = React.useState('')
+  let tkn = localStorage.getItem('token')
 
-
-  //Attempt to login with a given string from input field
-  const loginAdmin = (str) =>{
-    if(str==='')
-    {
-      alert('wrong password')
-        setIsAdmin(false)
-        localStorage.setItem('admin', "false")
-        return
-    }
-    else if(str==="wrong")
-    {
-      setIsAdmin(false)
-      localStorage.setItem('admin', "false")
-      alert("you logged out")
-    }
-    else
-    {
-      Axios.get(`/admin/${str}`)
-      .then(d=>
-        {
-      console.log(d)
-      if(d.data===true)
-      {
-        setIsAdmin(true)
-        localStorage.setItem('admin', "true")
-      }
-      else
-      {
-        alert('wrong password')
-        setIsAdmin(false)
-        localStorage.setItem('admin', "false")
-      }
+  const login = str => 
+  {
+    Axios.post(`/supervisors/login`, {"id":10000, "password":str})
+    .then(d=>{
+      let jwt = d.data.token
+      localStorage.setItem('token', jwt)
+      setToken(jwt)
       
     })
-    }
-
-
-    
+    .catch(err=>console.log('which?',err))
   }
 
+
   React.useEffect(()=>{
-    //check localstorage for login status
-
-      if(localStorage.getItem('admin')==="false"){
-
-      }else{
-        setIsAdmin(true)
-      }
-      
-
+    //check if logged in
+    
+    if(tkn){
+      setToken(tkn)
+    }
     
   },[])
+
+  React.useEffect(()=>{
+    if(tkn){
+      setAuth(true)
+    }
+    
+  },[token])
 
 
 
@@ -76,16 +54,16 @@ function App() {
       <BrowserRouter>
         <Switch>
           <Route path="/" exact>
-            <Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>
+            <Home login={login} isAdmin={isAdmin}/>
           </Route>
           <Route path="/supervisor_report" exact>
-            {isAdmin?<SupervisorsPage loginAdmin={loginAdmin} isAdmin={isAdmin}/>:<Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>}
+            {auth?<SupervisorsPage auth={auth}/>:<Redirect to="/"/>}
           </Route>
           <Route path="/individual/:userID" exact>
-            <IndividualPage loginAdmin={loginAdmin} isAdmin={isAdmin}/>
+          {auth?<IndividualPage auth={auth}/>:<Redirect to="/"/>}
           </Route>
           <Route path="/store_report" exact>
-            {isAdmin?<StorePage loginAdmin={loginAdmin} isAdmin={isAdmin}/>:<Home loginAdmin={loginAdmin} isAdmin={isAdmin}/>}
+          {auth?<StorePage auth={auth}/>:<Redirect to="/"/>}
           </Route>
           <Route>
             <div>
