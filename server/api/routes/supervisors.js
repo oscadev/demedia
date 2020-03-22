@@ -24,9 +24,11 @@ router.get('/', checkAuth, (req,res,next) =>
 })
 
 //Get one supervisor
-router.get('/:supervisorid', (req,res,next) =>
+router.get('/bysupervisorid/:id', (req,res,next) =>
 {
-    const id = req.params.supervisorid
+
+    const id = req.params.id
+    
 
     q.query(`SELECT * FROM directedgemedia.supervisors WHERE id = ${id};`)
     .then(d=>{

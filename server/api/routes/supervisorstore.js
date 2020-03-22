@@ -14,9 +14,9 @@ router.get('/', (req,res,next) =>
     
 })
 
-router.get('/bysupervisor', (req,res,next) => 
+router.get('/bysupervisorid/:id', (req,res,next) => 
 {
-    const id = req.body.id
+    const id = req.params.id
     q.query(`SELECT * FROM directedgemedia.user_store where user_id = ${id};`)
     .then(d=>{
         res.status(200).json({
@@ -28,12 +28,22 @@ router.get('/bysupervisor', (req,res,next) =>
     
 })
 
-router.get('/bystore', (req,res,next) => 
+router.post('/supervisorid/:id/storeid/:storeid', (req,res,next) => 
 {
-    const id = req.body.id
-    res.status(200).json({
-        message: 'Hosts fetched by store id of: '+id
-    })
+    const {id,storeid }= req.params
+    q.query(`INSERT INTO directedgemedia.user_store (user_id, store_id) VALUES 
+    ('${id}', '${storeid}') ON DUPLICATE KEY UPDATE store_id = ${storeid};`)
+    .then(d=>
+        {
+            res.status(200).json(
+                {
+                    message: 'Added store as host: '+id
+                })
+        }
+        )
+    .catch(err=>q.catch(res,err.message,409))
+
+    
 })
 
 router.post('/', (req,res,next) => 

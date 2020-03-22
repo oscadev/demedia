@@ -39,10 +39,10 @@ const connection = mysql.createConnection({
     })
 }
 
-const error = (res, msg, code) =>
+const error = (res, err, code) =>
 {
     res.status(code).json({
-        message: "Why",
+        message: err,
     })
 }
 

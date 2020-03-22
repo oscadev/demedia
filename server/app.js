@@ -6,7 +6,7 @@ const q = require('./models/query')
 
 const supervisorRoutes = require('./api/routes/supervisors')
 const storesRoutes = require('./api/routes/stores')
-const supervisorStoreRoutes = require('./api/routes/supervisor_store')
+const supervisorStoreRoutes = require('./api/routes/supervisorstore')
 const hostsRoutes = require('./api/routes/hosts')
 
 

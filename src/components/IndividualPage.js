@@ -7,84 +7,117 @@ import { Header } from './Header'
 export const IndividualPage = (props) => {
     const [items, setItems] = useState([])
     const [surroundingItems, setSurroundingItems] = useState([])
-    const [userData, setUserData] = useState(null)
-    const [storeData, setStoreData] = useState(null)
-    const [name, setName] = useState('')
+    const [supervisorNameAndRegion, setSupervisorNameAndRegion] = useState(null)
+    const [storesInRegion, setStoresInRegion] = useState(null)
     const [region, setRegion] = useState('')
-    const [chosen, setChosen] = useState(null)
-    const [chosenName, setChosenName] = useState(null)
+    const [chosenHost, setChosenHost] = useState(null)
+
     const [options, setOptions] = useState([])
     const [inputVal, setInputVal] = useState('')
     const [dic, setDic] = useState(null);
-    const [dicFlipped, setDicFlipped] = useState(null);
+
     let { userID } = useParams();
 
-  
+/*  
+First render setup:
 
-    //Get data for specific supervisor
-    const getData = () => 
+Get supervisor name and region
+Get chosen host if any
+Get stores in same region 
+*/
+    const makeDictionary = (storesInRegionArray) =>
     {
-        Axios.get(`/supervisors/${userID}`)
+        let tempDic = {}
+        
+        storesInRegionArray.forEach(e=>
+            {
+                tempDic[e.name] = e.id
+                tempDic[e.id] = e.name
+            })
+        
+        setDic(tempDic)
+    }
+  
+    const getSupervisorNameAndRegion = () => 
+    {
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem('token')
+        }
+        Axios.get(`/supervisors/bysupervisorid/${userID}`)
         .then(res=>{
             
-            setUserData(res.data.results)
+            setSupervisorNameAndRegion({
+                name: res.data.results[0].firstname + " " + res.data.results[0].lastname,
+                region: res.data.results[0].region
+            })
         })
         .catch(err=>console.log(err))
     }
 
+    const getStoreChosenAsHost = () => 
+    {
+        return new Promise ((resolve, reject)=>
+        {
+            Axios.get( `/supervisorstore/bysupervisorid/${userID}`)
+            .then(res=>
+                {
+                    if(res.data.results.length == 1)
+                    {
+                        resolve(setChosenHost(res.data.results[0].store_id));
+
+                        
+                        
+                    }
+                    else
+                    {
+                        resolve(setChosenHost(null))
+                    }
+                });
+        })
+
+        
+    };
+
     const getStoresInRegion = (reg) =>
     {
-        console.log("REGION IS: ", reg)
-        Axios.get(`/stores/byregion`, {region:reg})
+
+        Axios.get(`/stores/byregion/${reg}`)
         .then(res=>
             {
-                console.log("RESPONSE IS: ", res.data.results)
-                if(res.data.results.length)
-                setStoreData(res.data.results)
+                setStoresInRegion(res.data.results)
             })
         .catch(err=>console.log(err))
     }
 
-    //Fetch host that is currently selected by the supervisor, if there is one, and update state.
-    const getCurrentChosen = () => 
-    {
-        Axios.get( `/supervisorstore/bysupervisor`,{id:userID})
-        .then(res=>
-            {
-                console.log("RES IS: ", res.data.data)
-                if(res.data.data.results.length)
-                {
-                    setChosen(res.data.results[0].store_id);
-                    
-                    
-                }
-                else
-                {
-                    setChosen(res.data.results);
-                }
-            });
-    };
+    
 
     //Create and render the list of stores
-    const makeItems = (d) => 
+    const makeStoresInRegion = (storesInRegion) => 
     {
         let temp = [];
         let tempOpts = [];
         let currName = null;
-        let dictionary = {};
-        let dictionaryFlipped = {};
-        d.forEach((e,i)=>
+
+        storesInRegion.forEach((e,i)=>
         {
-            //Make dictionaries to convert ids to names and vice-versa
-            dictionary[e.name] = e.id;
-            dictionaryFlipped[e.id] = e.name;
-            if(e.id===chosen)
-            {
-                currName = e.name;
+
+
+
+            let bgColor = ''
+            if(chosenHost){
+                if(e.id===chosenHost)
+                {
+                    currName = e.name;
+                    bgColor = 'green'
+                }
             }
+            
+
+            
             temp.push
             (
-                <div className="flex-row item store" key={i} onClick={()=>{chooseStore(e.id)}} style={{backgroundColor:e.id===chosen?'green':'white'}}>
+                <div className="flex-row item store" key={i} onClick={()=>{chooseHost(e.id)}} style={{backgroundColor:bgColor}}>
                     <div className="id">
                         {e.id}
                     </div>
@@ -100,138 +133,191 @@ export const IndividualPage = (props) => {
                 <option value={e.name} key={i}/>
             );
         })
-        setDic(dictionary);
-        setDicFlipped(dictionaryFlipped);
-        setChosenName(currName);
+
+
         setItems(temp);
         setOptions(tempOpts);
     }
 
     //Select a store as host and remove a store and validate that it exists, and is in same region as supervisor
-    const chooseStore = (storeID, regi) => 
+    const postStoreToUserStore = (storeID) => 
     {
-        //On either an empty string, or when explicitly sent "remove", remove the chosen store
-        if (storeID==='' || storeID==="remove")
+        return new Promise ((resolve, reject)=>
         {
-            storeID="remove";
-            Axios.post(`/removehost/${userID}/${regi}`)
-            .then(d=>
-                {
-                    getCurrentChosen()
-                    setSurroundingItems([])
-                    getData()
-                    return
-                })
-        }
-        //If the id passed is a string rather than number, convert to number with dictionary
-        else if (isNaN(storeID))
-        {
-            if(dic[storeID])
-            {
-                storeID = dic[storeID];
-                Axios.post(`/choosehost/${userID}/${storeID}`)
-                .then(res=>
-                    {
-                        getData()
-                    })
+            console.log("getSelectedStoreAsHost() Ran" )
+            const headers = {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + localStorage.getItem('token')
             }
-            //If it is a string, but not a valid string, or not a string in region
-            else
-            {
-                alert(`${storeID} doesn't exist.`)
-                setInputVal('')
-                return
-            }
-        }
-        // All remaining & dont run when "remove" is explicit
-        else if(storeID!=="remove")
-        {
-
-            Axios.post(`/choosehost/${userID}/${storeID}`)
-            .then(res=>
-                {
-                    getCurrentChosen();
-                    getData();
-                })
-        }
+        //Add store as host in database
+        Axios.post(`/supervisorstore/supervisorid/${userID}/storeid/${storeID}`)
+        .then(d=>{
+            console.log("@)@)@)@)@)@)@))@)@)@)@)@)@)@): 1")
+            resolve('Success')
+        })
+        })
+        
     }
 
-    const getSurrounding = (hostid) => 
+
+    /* GET / POST / MAKE surrounding stores ************************************ */
+
+    const getSurrounding = () =>
     {
-        if(hostid.length===0){
-            return
-        }
-        Axios.get(`/surrounding/${hostid}`).then(d=>
+        console.log("GET SURROUNDING RAN: Chosen host is: ", chosenHost)
+        return new Promise((resolve, reject)=>
+        {
+            let query = `/stores/open/surrounding/${chosenHost}`
+            Axios.get(query).then(f=>
             {
-                makeSurrounding(d.data.results);
+                console.log("THIS SHOULD NOT BE AN EMPTY ARRAY: ", f)
+                console.log("THIS SHOULD NOT BE AN EMPTY ARRAY WUERY IS: ", query)
+                resolve(makeSurrounding(f.data.results));
+            })
+        })
+        
+    }
+
+    //Needs supervisorNameAndRegion, chosenHost, and dic
+    const postSurroundingToHosts = (hostID) => 
+    {
+        return new Promise((resolve, reject)=>
+        {
+
+            Axios.post(`/stores/open/surrounding/${userID}/${hostID}/${supervisorNameAndRegion.region}`).then(d=>
+            {
+                resolve('success')
             })
             .catch(err=>console.log(err));
+        })
+
+        
     }
 
+    
     const makeSurrounding = (arr) =>
     {
+        console.log("this hsould happen second")
+        
         let temp = [];
         arr.forEach((e,i)=>
         {
-            if(e.store_type==="surrounding")
-            {
+            console.log(e)
+
                 temp.push
                 (
                     <div className="surrounding flex-row item" key={i}>
                         <div className="name">
-                            {dicFlipped[e.store_id]}
+                            {dic[e.store_id]}
                         </div>
                         <div className="region">
                             {e.distance} miles away
                         </div>
                     </div>
                 );
-            };
+            
             
         });
+        console.log("MAKING SURROUNDING ITEMS TEMP: ", temp)
         setSurroundingItems(temp);
     }
 
+/*     CLICK TO ADD A STORE ***********************************************************************
+ */
+
+    const chooseHost = async (hostID) =>
+    {
+        //Post to user_store table
+        await postStoreToUserStore(hostID)
+        //Post to hosts table
+        console.log("@)@)@)@)@)@)@))@)@)@)@)@)@)@): 2")
+        await postSurroundingToHosts(hostID)
+        //Get new chosen storeß
+        await getStoreChosenAsHost(userID)
+        //Get new surrounding stores
+        // await getSurrounding()
+    }
+
+    const removeHost = async () =>
+    {
+        await Axios.delete(`/stores/${userID}/${supervisorNameAndRegion.region}`)
+
+        await getStoreChosenAsHost()
+
+        
+
+    }
+    /* USE EFFECTS surrounding stores ************************************/
+
     useEffect(() => 
     {
-        getData();
+        getSupervisorNameAndRegion();
+        
+        
+        
         
     },[]);
 
     useEffect(()=>
     {
-        if(userData)
+        
+        if(supervisorNameAndRegion)
+
         {
-            setName(userData[0].firstname + " " + userData[0].lastname );
-            setRegion(userData[0].region);
-            getStoresInRegion(userData[0].region);
-            getCurrentChosen();
-            
+            getStoresInRegion(supervisorNameAndRegion.region)
+
+
         }
-     
-    },[userData]);
+            
+        
+    },[supervisorNameAndRegion]);
+
+
 
     useEffect(()=>{
-        if(storeData && chosen){
-            makeItems(storeData)
-
         
+        if(storesInRegion){
+            makeDictionary(storesInRegion)
         }
-        
-    },[storeData, chosen]);
+    }, [storesInRegion])
 
-    useEffect(() => {
+    useEffect(()=>
+    {
         if(dic)
-        getSurrounding(chosen)
-    }, [dic])
+        {
+            makeStoresInRegion(storesInRegion)
+            getStoreChosenAsHost()
+            
+        }
+    },[dic])
+
+    useEffect(()=>
+    {
+        if(chosenHost)
+        {
+            makeStoresInRegion(storesInRegion)
+            getSurrounding()
+        }else if (storesInRegion)
+        {   makeStoresInRegion(storesInRegion)
+            getSurrounding()
+        }
+    },[chosenHost])
+
+
+
+
 
 
 
     return (
         <div className="flex">
             <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/>
+            <div onClick={()=>removeHost()}>
+                TEST REMOVE
+            </div>
+
             <h3 className="title">
-                Hello, {name}
+                Hello, {supervisorNameAndRegion?supervisorNameAndRegion.name:""}
             </h3>
             {items.length>0?
             <div>
@@ -240,10 +326,15 @@ export const IndividualPage = (props) => {
                     <br/>
                     You may click an option from the list below, or type it in the input field
                 </h4>
-            <h4 className="text" style={{color:chosenName?"green":"red"}}>
-                Current host selected: {chosenName?chosenName:"none"} {chosenName?<button onClick={()=>chooseStore('remove', region)}>Remove</button>:<button onClick={()=>chooseStore('remove', region)}>Remove</button>}
+            <h4 className="text" style={{color:chosenHost?"green":"red"}}>
+                Current host selected: {chosenHost && dic?dic[chosenHost]:"none"} {chosenHost?<button onClick={()=>postStoreToUserStore('remove', region)}>Remove</button>:<button onClick={()=>postStoreToUserStore('remove', region)}>Remove</button>}
             </h4>
-            <form onSubmit={(e)=>{e.preventDefault(); chooseStore(inputVal);}} className="flex-row">
+            <form onSubmit={(e)=>
+                {
+                    e.preventDefault(); 
+                    console.log(e.currentTarget)
+                    // postStoreToUserStore(inputVal);
+                    }} className="flex-row">
                 <input list="names" name="names" value={inputVal} onChange={(e)=>setInputVal(e.currentTarget.value)} className="textinput" autoComplete="off"/>
                 <datalist id="names">
                     {options}
@@ -251,7 +342,7 @@ export const IndividualPage = (props) => {
                 <input type="submit" className="btn"/>
             </form>
             <div className="surroundings flex" style={{display:surroundingItems.length>0?"":"none"}}>
-                <h3>Stores within 15 miles of {chosenName}</h3>
+                <h3>Stores within 15 miles of {chosenHost?chosenHost.name:""}</h3>
                 {surroundingItems}
             </div>
             <div className="flex">
