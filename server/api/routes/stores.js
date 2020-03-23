@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const q = require('../../models/query')
 const geodist = require('geodist');
+const checkAuth = require('../middleware/checkauth')
 
-router.get('/', (req,res,next) => 
+router.get('/', checkAuth,(req,res,next) => 
 {
     q.query(`SELECT * FROM directedgemedia.stores`)
     .then(d=>{
@@ -23,21 +24,40 @@ router.delete('/:userid/:region', async (req,res,next) =>
 {
     const {userid, region} = req.params;
 
+    //check if host being removed belongs to someone in remainin user_store list. If so, return since hosts should no tbe changed.
+
+    
+
     let hostid = await q.query(`SELECT * FROM directedgemedia.user_store WHERE user_id = ${userid}; `)
+    
     if(hostid.results[0]==[])
     {
-        return res.status(200).json({message:"This ID doesnt exist"})
+        return res.status(200).json({message:"This user doesnt have a host chosen. Nothing to remove."})
     }
 
     hostid = hostid.results[0].store_id
 
     await q.query(`DELETE FROM directedgemedia.user_store WHERE user_id = ${userid};`)
 
+    let newUserStore = (`SELECT * FROM directedgemedia.user_store;`)
+
+
+
+    //Check new user_store list for other users with same host as removed. If another exists, exit without chaning hosts
+
+    let allUsersWithStoreBeingRemovedAsHost = await q.query(`SELECT * FROM directedgemedia.user_store WHERE store_id = ${hostid};`)
+    if(allUsersWithStoreBeingRemovedAsHost.results.length>0)
+    {
+        return res.status(200).json({message:"Another user also has this store as host, and so returning without changing hosts table."})
+    }
+
     let entriesToCheck = await q.query(`SELECT * FROM directedgemedia.hosts WHERE closest_host_id = ${hostid}`)
     entriesToCheck = entriesToCheck.results
     
     //Use list of entries to find if they should be deleted or be moved as a surrounding to a differnt host
     await findClosestHostOrDelete(entriesToCheck, region)
+
+    await deleteAllEntriesWithoutUserHost()
 
     res.status(200).json({message: "Removed host with ID: "+hostid})
 
@@ -47,12 +67,8 @@ router.post('/open/surrounding/:userid/:hostid/:region', async (req,res,next) =>
 {
     const {userid, hostid, region} = req.params
     let otherUsersWithSameHost = []
-    console.log("THIS SHOULD BE RUNNING ON FIRST LOAD: %%%%%%%__________^^^^^^^^___________&&&&&&&&________********")
-    findClosestHostOrDelete([],region)
 
-    // let exitCheck = await q.query(`SELECT * FROM directedgemedia.user_store WHERE user_id = ${userid}, store_id = ${hostid};`)
 
-    // console.log('EXIST CHECK IS: ', exitCheck)
 
     let AllUserStore = await q.query(`SELECT user_id, store_id, region FROM directedgemedia.user_store INNER JOIN directedgemedia.supervisors ON user_id = id;`)
 
@@ -79,20 +95,17 @@ If other superovisor in same region has a different host, make list of overlappi
     if(userStoreRegionList.length == 0)
     {
         //How did you even get here? There are no stores in region asked, and so nothing to add or return from hosts
-        console.warn("THIS SHOULD NEVER TECHNICALLY RUN, BUT IF DOES, JUST EXIT")
         res.status(200).json({message:"Returned without adding"})
         return
     }
     else if (userStoreRegionList.length == 1)
     {
         //Add the store as a host to hosts and add surrounding
-        console.warn("ADD EASILY WITHOUT NEED TO COMPARE (EASY ADD)")
 
         let allStoresInRegion = await q.query(`SELECT * FROM directedgemedia.stores WHERE region = '${region}'`)
 
         let finalListFinal = await getWithin15Miles(hostid, allStoresInRegion.results)
 
-        console.log("ADD EASILY WITHOUT NEED TO COMPARE (EASY ADD) FAILS HERE. finalListFinal length IS: ", finalListFinal.length)
 
         await deleteAllEntriesWithoutUserHost()
 
@@ -128,18 +141,19 @@ Else if only 1 supervisor with the chosen host exists, it must be the new entry,
         if(otherUsersWithSameHost.length > 1)
         {
             //Already should exist in hosts
-            console.warn("THIS SHOULD ONLY RUN IF THERE IS NO NEED TO ADD TO HOSTS BECAUSE THAT HOST IS ALREADY THERE WITH ITS SURROUNDINGS")
+            await getWithin15AndAddToHosts(res,hostid, region)
+            await reAddHosts(userStoreRegionList)
             res.status(200).json({message:"Returned without adding"})
             return
         }
         else
         {
             //Add with compare
-            console.warn("THIS SHOULD ONLY RUN IF THERE ARE MORE THAN ONE STORE IN THE SAME REGION IN USER_STORE AND SE WE NEED TO COMPARE TO SEE WHERE EACH SURROUNDING GOES IN HOSTS")
 
             await getWithin15AndAddToHosts(res,hostid, region)
             await reAddHosts(userStoreRegionList)
             res.status(200).json({message:"Successfully added with comparison"})
+            return
         }
         
      }
@@ -150,7 +164,6 @@ Else if only 1 supervisor with the chosen host exists, it must be the new entry,
 router.get('/byregion/:region', (req,res,next) => 
 {
     const region = req.params.region
-    console.log("REGION in ALLSTORES BY REGION IS: ", region)
     q.query(`SELECT * FROM directedgemedia.stores WHERE region = '${region}';`)
     .then(d=>{
         q.res(res, d, 'Fetched all stores in region', 200)
@@ -252,16 +265,6 @@ const getClosestHostBetweenOldAndNew = (listWithin15, hostid) =>
                     }
                     else
                     {
-                        //Store isnt already a "surrounding" to another, and so insert it to hosts table
-                        // if(e.id === hostid)
-                        // {
-
-                        //     q.query(`INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) VALUES ('${e.id}', 'host', '${hostid}', '${e.distance}')
-                        //     ON DUPLICATE KEY UPDATE store_id = ${hostid}, store_type = 'host', closest_host_id = ${hostid}, distance = ${e.distance}
-                        //     ;`)
-                        // }
-                        // else{
-
                             q.query(`
                             INSERT INTO directedgemedia.hosts (store_id, store_type, closest_host_id, distance) 
                             VALUES ('${e.id}', 'surrounding', '${hostid}', '${e.distance}')
@@ -277,7 +280,6 @@ const getClosestHostBetweenOldAndNew = (listWithin15, hostid) =>
                                     
                                 }
                             })
-                        // }
                         
                         
                     }
@@ -316,11 +318,19 @@ const deleteAllEntriesWithoutUserHost = () =>
             return e.store_id
         })
 
+        if (listOfStoreIDs.length===0)
+        {
+            await q.query(`TRUNCATE directedgemedia.hosts;`)
+            return resolve('done')
+        }
+        else{
 
-        console.log("Delete all entries in hosts table that dont have a host chosen in user_store table: @@@@@@__________@@@@@@: The list of hosts in user_store is: ", listOfStoreIDs)
         await q.query(`DELETE FROM directedgemedia.hosts WHERE NOT closest_host_id IN (${listOfStoreIDs.join()})`)
 
         resolve("Done")
+        }
+
+        
 
 
 
@@ -334,7 +344,6 @@ const reAddHosts = (userStoreRegionListArray) =>
     {
         let i = 0;
         let len = userStoreRegionListArray.length
-        console.log("Readded Hosts at End: @@@@@@__________@@@@@@: Hosts were: ", userStoreRegionListArray)
 
 
         for(i=0; i<len ; i++)
@@ -357,7 +366,6 @@ const addNearbyToHosts = (nearL, hostid) =>
     
     return new Promise(async(resolve, reject)=>
     {
-        console.log("addNearbyToHosts: @@@@@@__________@@@@@@: ")
         let i = 0;
         let len = nearL.length
         for(i = 0; i<len; i++)
@@ -375,10 +383,6 @@ const addNearbyToHosts = (nearL, hostid) =>
     })
 }
 
-// const addNearbyToHosts = (nearL) =>
-// {
-//     console.log("!?!?!?!?!?!________!?!?!?!?!?!?:", nearL)
-// }
 
 const findClosestHostOrDelete = (entriesBeingRemoved, reg) =>
 {
@@ -395,14 +399,12 @@ const findClosestHostOrDelete = (entriesBeingRemoved, reg) =>
             storeDictionary[allStoresInRegion.results[i].id] = allStoresInRegion.results[i]
         }
 
-        console.log("MY AWESOME ALLSTORE DICTIONARY %*%*%*%*%*%*%*%*%*%*%*%*%*%*%*: ")
         let listOfHostIDs = await getAllDistinctStoreIDsInUserHostByRegion(reg)
         let glen = listOfHostIDs.length
 
         //Use closest if switching to a new host
         let closest = null
 
-        console.log("TRIED TO REMOVE A HOST CHOICE WEEEEEEE &@&@&@&@&@&@&@&@&@&@&@&&: entries length and host IDs length ", entriesBeingRemoved.length, listOfHostIDs.length)
         if(entriesBeingRemoved.length === 0 || listOfHostIDs.length === 0)
         {
             return resolve("Yayt")
@@ -416,9 +418,8 @@ const findClosestHostOrDelete = (entriesBeingRemoved, reg) =>
                 lon: storeDictionary[entriesBeingRemoved[i].store_id].longitude
             }
             
-            for(let g =0; g<listOfHostIDs.length; g++)
+            for(let g =0; g<glen; g++)
             {
-                // console.log("WHAT IS THIS THINGY?: ",listOfHostIDs)
                 //Get host ID that is within 15, and closest to entry. If none within 15, skip
                 let hostCoordinates = {
                     lat: storeDictionary[listOfHostIDs[g]].latitude,
@@ -430,14 +431,12 @@ const findClosestHostOrDelete = (entriesBeingRemoved, reg) =>
                 
                 if(g==0)
                 {
-                    console.log("RAN INSIDE IF STATEMENT: G is: ", g)
                     closest = {
                         g:g,
                         distance: dist
                     }
                 }
                 else{
-                    console.log("RAN OUTSIDE IF STATEMENT: G is: ", g)
                     if(closest.distance>dist)
                     {
                         closest = {
@@ -470,7 +469,6 @@ const getAllDistinctStoreIDsInUserHostByRegion = (region) =>
         let allUserStore = await q.query(`SELECT user_id, store_id, region FROM directedgemedia.user_store INNER JOIN directedgemedia.supervisors ON user_id = id;`)
 
         const listFilteredToRegion = []
-        console.log('Step 1 LIST: ', allUserStore)
         allUserStore.results.forEach((e,i)=>
         {
             
@@ -481,7 +479,6 @@ const getAllDistinctStoreIDsInUserHostByRegion = (region) =>
                 listFilteredToRegion.push(e.store_id)
             }
         })
-        console.log('Step 2 LIST: ', listFilteredToRegion)
         
         
         let distinctList = [];
@@ -491,7 +488,6 @@ const getAllDistinctStoreIDsInUserHostByRegion = (region) =>
                 distinctList.push(e)
             }
         } )
-        console.log('Step 3 LIST: ', distinctList)
         
         resolve(distinctList)
     })

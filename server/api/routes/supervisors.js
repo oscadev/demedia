@@ -8,7 +8,6 @@ const checkAuth = require('../middleware/checkauth')
 //Get all supervisors
 router.get('/', checkAuth, (req,res,next) =>
 {
-    console.log("FETCHING ALL SUPERVISORS")
     q.query(`SELECT * FROM directedgemedia.supervisors;`)
     .then(d=>
         {

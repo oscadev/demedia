@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Axios from 'axios'
-import { Header } from './Header'
+
 
 export const StorePage = (props) => {
     const [items, setItems] = useState([])
@@ -9,19 +9,26 @@ export const StorePage = (props) => {
     const [completeStores, setCompleteStores] = useState([])
     const [totals, setTotals] = useState({hosts:0,surrounding:0,general:0})
 
+    let tkn = localStorage.getItem('token')
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + tkn
+        }
+
 
     const getData = () => {
-        Axios.get('/supervisors').then(res=>{
-            setData(res.data)
+        
+        Axios.get('/supervisors', {headers:headers}).then(res=>{
+            setData(res.data.results)
         }).catch(err=>console.log(err))
     }
 
     const getStoreData = () =>{
-        
-         Axios.get(`/stores`)
+
+        Axios.get('/stores', {headers:headers})
         .then(res=>{
-            if(res.data.length)
-            setStores(res.data)
+            if(res.data.results.length)
+            setStores(res.data.results)
         })
         .catch(err=>console.log(err))
     }
@@ -29,7 +36,7 @@ export const StorePage = (props) => {
     const getHosts = () =>{
         let tempComplete = {}
 
-         Axios.get(`/gethosts`)
+         Axios.get(`/hosts`)
         .then(res=>{
             
             
@@ -47,7 +54,7 @@ export const StorePage = (props) => {
 
                 }
             })
-            res.data.forEach(e=>{
+            res.data.results.forEach(e=>{
 
                 tempComplete[e.store_id].id = e.store_id
                 tempComplete[e.store_id].store_type= e.store_type
@@ -97,7 +104,7 @@ export const StorePage = (props) => {
                     <div className="id">{d[e].region}</div>
                     <div className="id">{d[e].store_type==="surrounding"?`${d[e].distance}mi`:""}</div>
                     <div className="id">{d[e].store_type==="surrounding"?d[e].closest_host_id:""}</div>
-            <div className="name" style={{textAlign:'left', justifyContent:'flex-start', alignItems:'flex-start', overflowY:'scroll'}}><span style={{backgroundColor:'black', margin:'4px', color:'white'}}>{arrayOfSurr.length>0?arrayOfSurr.length:""} </span>{arrayOfSurr.length>0?arrayOfSurr.splice(1):null}</div>
+            <div className="name" style={{textAlign:'left', justifyContent:'flex-start', alignItems:'flex-start', overflowY:'scroll'}}><span style={{backgroundColor:'black', margin:'4px', color:'white'}}>{arrayOfSurr.length>0?arrayOfSurr.length - 1:""} </span>{arrayOfSurr.length>0?arrayOfSurr.splice(1):null}</div>
                 </div>
             )
         })
@@ -126,7 +133,7 @@ export const StorePage = (props) => {
 
     return (
         <div className="flex">
-            <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/>
+            {/* <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/> */}
 
             <h3 className="title">Store Report Page</h3>
             <div className="stats flex-row">

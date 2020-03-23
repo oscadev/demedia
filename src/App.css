@@ -17,6 +17,10 @@
 
 }
 
+.start {
+  align-self: start;
+}
+
 .textinput{
   width: 200px;
   height: 32px;
@@ -25,11 +29,18 @@
 }
 
 .btn{
-  width: 50px;
-  height: 24px;
-  cursor: pointer;
-  color: white;background-color: coral;
 
+  padding: 16px;
+
+  cursor: pointer;
+  color: rgb(48, 59, 109);
+  border: none;
+
+
+}
+
+.btn:hover{
+  background-color: rgb(4, 119, 0);
 }
 
 .gap{
@@ -54,7 +65,7 @@
   /* width: 300px; */
   border-bottom: #282c34 solid 1px;
   justify-content: flex-start;
-  /* padding: 8px; */
+  /* background-color: linen; */
   
 }
 
@@ -68,7 +79,7 @@
 .name{
   border-right: solid black 1px;
   /* border-left: solid black 1px; */
-  padding: 0 5px;
+  /* padding: 0 5px; */
   width: 250px;
   min-height: 32px;
   /* height: 32px; */
@@ -103,21 +114,31 @@
 }
 
 .tab{
-  width: 200px;
+  /* width: 200px; */
+  padding: 0 8px;
   color: white;
   height: 48px;
   border: #61dafb solid 1px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background-color: #3c4353;
 }
 
 .surrounding{
   width: 400px;
-  border: coral solid 1px;
+  border: rgb(49, 13, 0) solid 1px;
+  background-image: linear-gradient(to right, coral, orange);
+  color:white;
+  
 }
 
 .item > *{
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: bold;
 }
 .logged{
   color:lightblue;
@@ -126,6 +147,23 @@
 
 }
 
-.body{
-  background-color: lightgreen;
+body{
+  background-image: linear-gradient(to right, #fbfbfb, #fbfbfb);
+}
+
+.in-region {
+
+  width: fit-content;
+}
+
+.neumorph {
+  border-radius: 0px;
+background: #fbfbfb;
+box-shadow:  20px 20px 60px #c9c9c9, 
+             -20px -20px 60px #ffffff;
+  color: rgb(35, 35, 105);
+}
+
+.margin {
+  margin: 32px 0;
 }

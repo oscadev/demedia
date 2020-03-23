@@ -13,7 +13,7 @@ export const Home = (props) => {
 
     return (
         <div className={'flex'}>
-            <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/>
+            {/* <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin} auth={props.auth}/> */}
             <h2 className="">
                 Home Page
             </h2>

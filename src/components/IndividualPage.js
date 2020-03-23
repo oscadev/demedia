@@ -11,6 +11,7 @@ export const IndividualPage = (props) => {
     const [storesInRegion, setStoresInRegion] = useState(null)
     const [region, setRegion] = useState('')
     const [chosenHost, setChosenHost] = useState(null)
+    const [viewSurrounding, setViewSurrounding] = useState(false)
 
     const [options, setOptions] = useState([])
     const [inputVal, setInputVal] = useState('')
@@ -62,6 +63,7 @@ Get stores in same region
             Axios.get( `/supervisorstore/bysupervisorid/${userID}`)
             .then(res=>
                 {
+                    
                     if(res.data.results.length == 1)
                     {
                         resolve(setChosenHost(res.data.results[0].store_id));
@@ -206,12 +208,12 @@ Get stores in same region
 
                 temp.push
                 (
-                    <div className="surrounding flex-row item" key={i}>
+                    <div className="flex-row item surrounding" key={i}>
                         <div className="name">
                             {dic[e.store_id]}
                         </div>
                         <div className="region">
-                            {e.distance} miles away
+                            {e.distance} mi away
                         </div>
                     </div>
                 );
@@ -227,6 +229,29 @@ Get stores in same region
 
     const chooseHost = async (hostID) =>
     {
+        //reset text input value
+        setInputVal('')
+        //check if empty or null
+        if(hostID==="" || hostID === null || hostID =="null")
+        {
+            await removeHost()
+            return
+        }
+
+        //Check if is valid
+
+        if(!dic[hostID]){
+            alert("This ID or Store name does not exist in your region")
+            return
+        }
+        
+
+        //Check if is string rather than ID
+
+        if(isNaN(hostID))
+        {
+            hostID = dic[hostID]
+        }
         //Post to user_store table
         await postStoreToUserStore(hostID)
         //Post to hosts table
@@ -240,9 +265,16 @@ Get stores in same region
 
     const removeHost = async () =>
     {
+        //exit if already empty
+        if(chosenHost===null)
+        {
+            return
+        }
         await Axios.delete(`/stores/${userID}/${supervisorNameAndRegion.region}`)
 
         await getStoreChosenAsHost()
+
+
 
         
 
@@ -293,6 +325,7 @@ Get stores in same region
 
     useEffect(()=>
     {
+
         if(chosenHost)
         {
             makeStoresInRegion(storesInRegion)
@@ -311,10 +344,8 @@ Get stores in same region
 
     return (
         <div className="flex">
-            <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/>
-            <div onClick={()=>removeHost()}>
-                TEST REMOVE
-            </div>
+            {/* <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/> */}
+
 
             <h3 className="title">
                 Hello, {supervisorNameAndRegion?supervisorNameAndRegion.name:""}
@@ -322,30 +353,34 @@ Get stores in same region
             {items.length>0?
             <div>
                 <h4 className="text">
-                    Please pick a store (these are {region})
+                    Please pick a store (these are {supervisorNameAndRegion.region})
                     <br/>
                     You may click an option from the list below, or type it in the input field
                 </h4>
             <h4 className="text" style={{color:chosenHost?"green":"red"}}>
-                Current host selected: {chosenHost && dic?dic[chosenHost]:"none"} {chosenHost?<button onClick={()=>postStoreToUserStore('remove', region)}>Remove</button>:<button onClick={()=>postStoreToUserStore('remove', region)}>Remove</button>}
+                Current host selected: {chosenHost && dic?dic[chosenHost]:"none"} {chosenHost?<button className="btn neumorph" onClick={()=>removeHost()}>Remove</button>:<button className="btn neumorph" onClick={()=>removeHost()}>Remove</button>}
             </h4>
             <form onSubmit={(e)=>
                 {
                     e.preventDefault(); 
                     console.log(e.currentTarget)
-                    // postStoreToUserStore(inputVal);
+                    chooseHost(inputVal);
                     }} className="flex-row">
                 <input list="names" name="names" value={inputVal} onChange={(e)=>setInputVal(e.currentTarget.value)} className="textinput" autoComplete="off"/>
                 <datalist id="names">
                     {options}
                 </datalist>
-                <input type="submit" className="btn"/>
+                <input type="submit" className="btn neumorph"/>
             </form>
-            <div className="surroundings flex" style={{display:surroundingItems.length>0?"":"none"}}>
-                <h3>Stores within 15 miles of {chosenHost?chosenHost.name:""}</h3>
-                {surroundingItems}
-            </div>
-            <div className="flex">
+            <div className="content flex">
+                <div className="surroundings flex" style={{display:surroundingItems.length>0?"":"none"}}>
+                    {viewSurrounding?<h3 className="btn neumorph" onClick={()=>setViewSurrounding(!viewSurrounding)}>Hide stores surrounding {dic[chosenHost]}</h3>:<h3 className="btn neumorph" onClick={()=>setViewSurrounding(!viewSurrounding)}>View stores surrounding {dic[chosenHost]}</h3>}
+                    <div style = {{display:viewSurrounding?"":"none", margin: "32px 0"}}> 
+                        {surroundingItems}
+                    </div> 
+                </div>
+                
+                <div className="flex in-region neumorph" >
                 <div className="flex-row item bar">
                     <div className="id">
                         ID
@@ -358,7 +393,10 @@ Get stores in same region
                     </div>
                 </div>
                     {items}
+                </div>
             </div>
+            
+            
             </div>
             :
             <div>

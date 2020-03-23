@@ -7,6 +7,7 @@ import { SupervisorsPage } from './components/SupervisorsPage';
 import { StorePage } from './components/StorePage';
 import { IndividualPage } from './components/IndividualPage';
 import Axios from 'axios';
+import { Header } from './components/Header';
 
 
 function App() {
@@ -25,6 +26,12 @@ function App() {
       
     })
     .catch(err=>console.log('which?',err))
+  }
+
+  const logout = () =>
+  {
+    localStorage.removeItem('token')
+    setAuth(false)
   }
 
 
@@ -52,15 +59,17 @@ function App() {
       
       {/* //Router for navigation and auth */}
       <BrowserRouter>
+      <Header auth={auth} logout={logout}/>
+
         <Switch>
           <Route path="/" exact>
-            <Home login={login} isAdmin={isAdmin}/>
+            <Home login={login} isAdmin={isAdmin} auth={auth}/>
           </Route>
           <Route path="/supervisor_report" exact>
             {auth?<SupervisorsPage auth={auth}/>:<Redirect to="/"/>}
           </Route>
           <Route path="/individual/:userID" exact>
-          {auth?<IndividualPage auth={auth}/>:<Redirect to="/"/>}
+          <IndividualPage auth={auth}/>
           </Route>
           <Route path="/store_report" exact>
           {auth?<StorePage auth={auth}/>:<Redirect to="/"/>}

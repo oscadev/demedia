@@ -7,9 +7,10 @@ import { Header } from './Header';
 export const SupervisorsPage = (props) => {
     const [items, setItems] = useState([]);
     const [data, setData] = useState([]);
+    const [userStore, setUserStore] = useState(null);
     const [totalHosts, setTotalHosts] = useState(null);
     const [totalUsersWithHost, setTotalUsersWithHost] = useState(0);
-    const [participation, setParticipation] = useState(0);
+    const [participation, setParticipation] = useState(null);
 
     // Get supervisors DB data
     const getAllSupervisors = () => {
@@ -28,44 +29,51 @@ export const SupervisorsPage = (props) => {
 
     //Count supervisors that have chosen hosts and where host isnt null
     const getTotalHosts = () => {
-        Axios.get('/hosts').then((d) => 
+        let tkn = localStorage.getItem('token')
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + tkn
+        }
+        Axios.get('/hosts', {headers:headers}).then((d) => 
         {
-            let notNull = 0;
+            let isHost = 0;
             console.log(d.data.results)
             d.data.results.forEach((e) => {
-                if (e.store_id) {
-                notNull++;
+                if (e.store_type === "host") {
+                isHost++;
                 }
             });
-            setTotalHosts(notNull);
+            setTotalHosts(isHost);
         });
     };
 
     const getParticipation = (arr) => 
     {
-        Axios.get('/supervisorstore')
+        let tkn = localStorage.getItem('token')
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + tkn
+        }
+        Axios.get('/supervisorstore', {headers:headers})
         .then((d) => 
         {
 
-            // Find not null in case a user is in the user_store db, but has a store_id of null
-            let notNull = 0;
-            d.data.results.forEach((e) => 
-            {
-                if (e.store_id) 
+            let temp = []
+            d.data.results.forEach(e=>
                 {
-                    notNull++;
-                }
-            });
-            setTotalUsersWithHost(d.data.length);
+                    temp.push(e.user_id)
+                })
+            setUserStore(temp)
+            setTotalUsersWithHost(d.data.results.length);
         });
     };
 
     // Create and Render the visible list items
-    const makeItems = (d) => {
+    const makeItems = (d, arr = []) => {
         const temp = [];
         d.forEach((e, i) => {
         temp.push(
-            <div className="flex-row item" key={i}>
+            <div className="flex-row item" key={i} style={{backgroundImage:arr.includes(e.id)?'linear-gradient(to right, #00BF00, #00F000':'white'}}>
                 <div className="id">
                     {e.id}
                 </div>
@@ -103,13 +111,21 @@ export const SupervisorsPage = (props) => {
         }
     },[totalHosts]);
 
+    useEffect(()=>
+    {
+        if(userStore)
+        {
+            makeItems(data, userStore)
+        }
+    },[userStore])
+
 return  (
             <div className="flex">
-                <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/>
+                {/* <Header isAdmin={props.isAdmin} loginAdmin={props.loginAdmin}/> */}
                 <h3 className="">
                     Supervisor's Report
                 </h3>
-                <div className="flex">
+                <div className="flex neumorph margin" style={{padding:'16px'}}>
                     <div className="name">
                         Total Stores Hosting: {totalHosts}
                     </div>
@@ -120,8 +136,8 @@ return  (
                         Supervisor Participation: {participation}
                     </div>
                 </div>
-                <div className="flex">
-                    <div className="flex-row item bar">
+                <div className="flex neumorph">
+                    <div className="flex-row start item bar" style={{minWidth:'100%'}}>
                         <div className="id">
                             ID
                         </div>
@@ -131,7 +147,7 @@ return  (
                         <div className="region">
                             REGION
                         </div>
-                        <div className="gap"/>
+                        <div style={{width:"16px"}}/>
                     </div>
                     {items}
                 </div>

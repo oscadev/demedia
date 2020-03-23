@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const q = require('../../models/query')
+const checkAuth = require('../middleware/checkauth')
 
 router.get('/', (req,res,next) => 
 {

@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const q = require('../../models/query')
+const checkAuth = require('../middleware/checkauth')
 
-router.get('/', (req,res,next) => 
+//Protect all post, delete, and 
+
+router.get('/',checkAuth, (req,res,next) => 
 {
+    console.log("Authed !")
     q.query(`SELECT * FROM directedgemedia.user_store`)
     .then(d=>{
         res.status(200).json({

@@ -93,20 +93,20 @@ const makeDatabaseIfDoesntExist = async () =>
     }
 }
 
-const hashPassword = (password) =>
-{
-    bcrypt.hash(password, 10, (err, hash)=>
-    {
-        if(err)
-        {
-            console.log(err)
-        }else{
-            console.log(hash)
-        }
-    })
-}
+// const hashPassword = (password) =>
+// {
+//     bcrypt.hash(password, 10, (err, hash)=>
+//     {
+//         if(err)
+//         {
 
-hashPassword('password')
+//         }else{
+
+//         }
+//     })
+// }
+
+// hashPassword('password')
 
 makeDatabaseIfDoesntExist()
 
